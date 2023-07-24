@@ -25,8 +25,8 @@ workflows:
           - |
             #!/bin/bash
             set -eo pipefail
-            wget https://go.dev/dl/go1.20.6.darwin-arm64.pkg
-            sudo installer -pkg go1.20.6.darwin-arm64.pkg -target /
+            # download go1.20.6.darwin-arm64.pkg if not exists
+            [ -f go1.20.6.darwin-arm64.pkg && -f /usr/local/go/bin/go ] || (wget https://go.dev/dl/go1.20.6.darwin-arm64.pkg && sudo installer -pkg go1.20.6.darwin-arm64.pkg -target /)
           - |
             #!/bin/bash
             set -eo pipefail
