@@ -10,7 +10,7 @@ workflows:
         vars:
           PUBLIC_ENV_VAR: "CGO_ENABLED=1 GOOS=ios GOARCH=arm64 SDK=iphoneos SDK_PATH=`xcrun --sdk $SDK --show-sdk-path` CLANG=`xcrun --sdk $SDK --find clang` CARCH='arm64' CGO_CFLAGS='-fembed-bitcode'"
         xcode: latest
-        cocoapods: latest
+        # cocoapods: default
       triggering:
         events:
           - push
