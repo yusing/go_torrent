@@ -1,0 +1,35 @@
+# Build go_torrent library for iOS
+workflows:
+    go_torrent:
+      name: go_torrent
+      instance_type: mac_mini_m1
+      max_build_duration: 60
+      environment:
+        vars:
+          PUBLIC_ENV_VAR: "CGO_ENABLED=1 GOOS=ios GOARCH=arm64 SDK=iphoneos SDK_PATH=`xcrun --sdk $SDK --show-sdk-path` CLANG=`xcrun --sdk $SDK --find clang` CARCH='arm64' CGO_CFLAGS='-fembed-bitcode'"
+        xcode: latest
+        cocoapods: latest
+      triggering:
+        events:
+          - push
+        branch_patterns:
+          - pattern: '*'
+            include: true
+            source: true
+        cancel_previous_builds: true
+      scripts:
+        
+          - |
+            #!/bin/bash
+            set -eo pipefail
+            wget https://go.dev/dl/go1.20.6.darwin-arm64.pkg
+            sudo installer -pkg go1.20.6.darwin-arm64.pkg -target /
+          - |
+            #!/bin/bash
+            set -eo pipefail
+            echo "Building go_torrent for iOS"
+            mkdir -p build/ios
+            go build -tags ios -o build/ios/libtorrent_go_ios.a -buildmode=c-archive
+            echo "Building go_torrent for iOS completed"
+      artifacts:
+          - build/ios/*.a
