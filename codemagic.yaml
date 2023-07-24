@@ -4,6 +4,7 @@ workflows:
       name: go_torrent
       instance_type: mac_mini_m1
       max_build_duration: 60
+      working_directory: go_torrent
       environment:
         groups:
           - ios
