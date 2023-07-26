@@ -38,7 +38,7 @@ workflows:
             set -x
             echo "Building go_torrent for iOS"
             mkdir -p build/ios
-            cd go_torrent
+            go mod init yusing/go_torrent/v2
             go build -tags ios -o ../build/ios/libtorrent_go_ios.a -buildmode=c-archive
             cd ..
             echo "Building go_torrent for iOS completed"
