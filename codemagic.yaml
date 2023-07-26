@@ -43,5 +43,19 @@ workflows:
             go build -tags ios -o ../build/ios/libtorrent_go_ios.a -buildmode=c-archive
             cd ..
             echo "Building go_torrent for iOS completed"
+      publishing:
+        scripts:
+            - name: report build status
+              script: |
+                if [ -a build/ios/libtorrent_go_ios.a ]; then
+                  echo "Build succeeded"
+                  exit 0
+                else
+                  echo "Build failed, no libtorrent_go_ios.a found"
+                  ls -l build/ios
+                  echo "Current directory: $PWD"
+                  ls -l
+                  exit 1
+                fi
       artifacts:
-          - build/ios/*.a
+          - build/ios/libtorrent_go_ios.a
