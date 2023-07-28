@@ -42,7 +42,7 @@ func InitTorrentClient(savePathCStr *C.char) {
 	config := torrent.NewDefaultClientConfig()
 	config.NoDHT = false
 	config.NoUpload = true
-	config.DataDir = dataPath
+	config.DataDir = savePath
 	config.Seed = false
 	config.DisableIPv6 = true
 	torrentClient, _ = torrent.NewClient(config)

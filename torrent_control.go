@@ -8,11 +8,56 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
+	"time"
 	"unsafe"
 
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
 )
+
+func GetTrackers() []string {
+	URL := "https://github.com/XIU2/TrackersListCollection/raw/master/best.txt"
+	trackersTxtPath := path.Join(dataPath, "trackers.txt")
+	// if trackers.txt is older than 1 day, download it again
+	if fileInfo, err := os.Stat(trackersTxtPath); err != nil || time.Since(fileInfo.ModTime()).Hours() > 24 {
+		// download trackers.txt
+		resp, err := http.Get(URL)
+		if err != nil {
+			log.Printf("[Torrent-Go] Error downloading trackers.txt: %s", err)
+			return nil
+		}
+		defer resp.Body.Close()
+		trackersTxtFile, err := os.Create(trackersTxtPath)
+		if err != nil {
+			log.Printf("[Torrent-Go] Error creating trackers.txt: %s", err)
+			return nil
+		}
+		defer trackersTxtFile.Close()
+		_, err = io.Copy(trackersTxtFile, resp.Body)
+		if err != nil {
+			log.Printf("[Torrent-Go] Error reading trackers.txt: %s", err)
+			return nil
+		}
+	}
+
+	if content, err := os.ReadFile(trackersTxtPath); err != nil {
+		log.Printf("[Torrent-Go] Error reading trackers.txt: %s", err)
+		return nil
+	} else {
+		lines := strings.Split(string(content[:len(content)-1]), "\n")
+		trackers := []string{}
+		for _, line := range lines {
+			// if line is empty, skip
+			if line == "" {
+				continue
+			}
+			trackers = append(trackers, line)
+		}
+		// log.Printf("[Torrent-Go] Trackers: %s", trackers)
+		return trackers
+	}
+}
 
 func AddTorrentFromInfoHash(infoHashStr string) *torrent.Torrent {
 	infoHash := torrent.InfoHash{}
@@ -73,6 +118,9 @@ func AddMagnet(magnetCString *C.char) *C.char {
 	}
 	<-t.GotInfo()
 	log.Printf("Added %p", t)
+	if trackers := GetTrackers(); trackers != nil {
+		t.AddTrackers([][]string{trackers})
+	}
 	t.DownloadAll()
 	SaveMetadata(t)
 	SaveSession()
@@ -108,6 +156,9 @@ func AddTorrent(torrentUrlCStr *C.char) *C.char {
 		return jsonify([]map[string]interface{}{})
 	}
 	<-t.GotInfo()
+	if trackers := GetTrackers(); trackers != nil {
+		t.AddTrackers([][]string{trackers})
+	}
 	torrentInfoMap := torrentInfoMap(t)
 	t.DownloadAll()
 	SaveMetadata(t)
