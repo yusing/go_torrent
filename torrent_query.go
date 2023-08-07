@@ -2,9 +2,7 @@ package main
 
 import "C"
 import (
-	"encoding/json"
 	"log"
-	"os"
 	"unsafe"
 
 	"github.com/anacrolix/torrent"
@@ -48,34 +46,3 @@ func TorrentList() []map[string]interface{} {
 func GetTorrentList() *C.char {
 	return jsonify(TorrentList())
 }
-
-func SaveSession() {
-	session, _ := json.Marshal(TorrentList())
-	err := os.WriteFile(sessionJsonPath, session, 0644)
-	if err != nil {
-		log.Printf("Error saving session: %s", err)
-	}
-}
-
-func LastSessionBytes() []byte {
-	// check if sessionJsonPath exists
-	if _, err := os.Stat(sessionJsonPath); os.IsNotExist(err) {
-		return []byte("[]")
-	}
-	session, err := os.ReadFile(sessionJsonPath)
-	if err != nil {
-		log.Printf("Error reading session: %s", err)
-		return []byte("[]")
-	}
-	return session
-}
-
-//export GetLastSession
-// func GetLastSession() *C.char {
-// 	var sessionMap []map[string]interface{}
-// 	err := json.Unmarshal(LastSessionBytes(), &sessionMap)
-// 	if err != nil {
-// 		return jsonify([]map[string]interface{}{})
-// 	}
-// 	return jsonify(sessionMap)
-// }

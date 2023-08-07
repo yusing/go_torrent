@@ -14,6 +14,7 @@ import (
 
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
+	"github.com/anacrolix/torrent/types/infohash"
 )
 
 func GetTrackers() []string {
@@ -54,18 +55,17 @@ func GetTrackers() []string {
 			}
 			trackers = append(trackers, line)
 		}
-		// log.Printf("[Torrent-Go] Trackers: %s", trackers)
 		return trackers
 	}
 }
 
 func AddTorrentFromInfoHash(infoHashStr string) *torrent.Torrent {
-	infoHash := torrent.InfoHash{}
-	if parseErr := infoHash.FromHexString(infoHashStr); parseErr != nil {
+	infoHash_ := infohash.T{}
+	if parseErr := infoHash_.FromHexString(infoHashStr); parseErr != nil {
 		log.Printf("[Torrent-Go] Error parsing infoHash: %s %s", infoHashStr, parseErr)
 		return nil
 	} else {
-		t, ok := torrentClient.AddTorrentInfoHash(infoHash)
+		t, ok := torrentClient.AddTorrentInfoHash(infoHash_)
 		if t == nil || !ok {
 			log.Printf("[Torrent-Go] Error adding torrent from infoHash %s", infoHashStr)
 		}
@@ -117,13 +117,12 @@ func AddMagnet(magnetCString *C.char) *C.char {
 		return jsonify([]map[string]interface{}{})
 	}
 	<-t.GotInfo()
-	log.Printf("Added %p", t)
+	// log.Printf("Added %p", t)
 	if trackers := GetTrackers(); trackers != nil {
 		t.AddTrackers([][]string{trackers})
 	}
-	t.DownloadAll()
 	SaveMetadata(t)
-	SaveSession()
+	t.DownloadAll()
 	torrentInfoMap := torrentInfoMap(t)
 	return jsonify(torrentInfoMap)
 }
@@ -162,7 +161,6 @@ func AddTorrent(torrentUrlCStr *C.char) *C.char {
 	torrentInfoMap := torrentInfoMap(t)
 	t.DownloadAll()
 	SaveMetadata(t)
-	SaveSession()
 	return jsonify(torrentInfoMap)
 }
 
@@ -203,5 +201,4 @@ func DeleteTorrent(torrentPtr unsafe.Pointer) {
 	if (os.Remove(path.Join(dataPath, infoHashStr+".json"))) != nil {
 		log.Printf("[Torrent-Go] Warning: Error deleting metadata: %s", err)
 	}
-	SaveSession()
 }

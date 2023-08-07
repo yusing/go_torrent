@@ -2,7 +2,6 @@ package main
 
 import "C"
 import (
-	"encoding/json"
 	"log"
 	"os"
 	"path"
@@ -13,21 +12,23 @@ import (
 var torrentClient *torrent.Client = nil
 var savePath string
 var dataPath string
-var sessionJsonPath string
 
 func loadLastSession() {
-	sessionRaw := LastSessionBytes()
-
-	var session []map[string]interface{}
-	err := json.Unmarshal(sessionRaw, &session)
-	if err != nil {
-		log.Printf("Error parsing session: %s", err)
-		return
+	// torrent list is data/*.json
+	if files, err := os.ReadDir(dataPath); err != nil {
+		log.Printf("[Torrent-Go] Error reading data dir: %s", err)
+	} else {
+		for _, file := range files {
+			if file.IsDir() {
+				continue
+			}
+			if path.Ext(file.Name()) == ".json" {
+				// filename is the infohash
+				ReadMetadataAndAdd(file.Name()[:len(file.Name())-5])
+			}
+		}
+		log.Println("Session loaded")
 	}
-	for _, torrentInfoMap := range session {
-		ReadMetadataAndAdd(torrentInfoMap["info_hash"].(string))
-	}
-	log.Println("Session loaded")
 }
 
 //export InitTorrentClient
@@ -38,15 +39,16 @@ func InitTorrentClient(savePathCStr *C.char) {
 	savePath = C.GoString(savePathCStr)
 	dataPath = path.Join(savePath, "data")
 	os.MkdirAll(dataPath, 0755)
-	sessionJsonPath = path.Join(dataPath, "session.json")
 	config := torrent.NewDefaultClientConfig()
 	config.NoDHT = false
-	config.NoUpload = true
+	config.NoUpload = false
 	config.DataDir = savePath
-	config.Seed = false
+	config.Seed = true
 	config.DisableIPv6 = true
 	torrentClient, _ = torrent.NewClient(config)
 	loadLastSession()
 }
 
-func main() {}
+func main() {
+	// This is a dummy main function to make possible
+}
