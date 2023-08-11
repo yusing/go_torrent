@@ -2,10 +2,10 @@ package main
 
 import "C"
 import (
-	"log"
 	"unsafe"
 
 	"github.com/anacrolix/torrent"
+	log "github.com/sirupsen/logrus"
 )
 
 // func FindTorrent(infoHashStr string) (t *torrent.Torrent, infoHash metainfo.Hash) {
@@ -22,7 +22,7 @@ import (
 //export GetTorrentInfo
 func GetTorrentInfo(torrentPtr unsafe.Pointer) *C.char {
 	if torrentPtr == nil {
-		log.Println("[Torrent-Go] GetTorrentInfo: torrentPtr is nil")
+		log.Debugln("[Torrent-Go] GetTorrentInfo: torrentPtr is nil")
 		return jsonify(map[string]interface{}{})
 	}
 	return jsonify(torrentInfoMap((*torrent.Torrent)(torrentPtr)))

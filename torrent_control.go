@@ -4,7 +4,6 @@ import "C"
 import (
 	"encoding/json"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -15,6 +14,8 @@ import (
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/types/infohash"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func GetTrackers() []string {
@@ -25,28 +26,35 @@ func GetTrackers() []string {
 		// download trackers.txt
 		resp, err := http.Get(URL)
 		if err != nil {
-			log.Printf("[Torrent-Go] Error downloading trackers.txt: %s", err)
+			log.Debugf("[Torrent-Go] Error downloading trackers.txt: %s", err)
 			return nil
 		}
 		defer resp.Body.Close()
-		trackersTxtFile, err := os.Create(trackersTxtPath)
+		trackersTxtFile, err := os.OpenFile(trackersTxtPath, os.O_WRONLY|os.O_CREATE, 0644)
 		if err != nil {
-			log.Printf("[Torrent-Go] Error creating trackers.txt: %s", err)
+			log.Debugf("[Torrent-Go] Error creating trackers.txt: %s", err)
 			return nil
 		}
 		defer trackersTxtFile.Close()
 		_, err = io.Copy(trackersTxtFile, resp.Body)
 		if err != nil {
-			log.Printf("[Torrent-Go] Error reading trackers.txt: %s", err)
+			log.Debugf("[Torrent-Go] Error writing trackers.txt: %s", err)
 			return nil
 		}
 	}
 
-	if content, err := os.ReadFile(trackersTxtPath); err != nil {
-		log.Printf("[Torrent-Go] Error reading trackers.txt: %s", err)
+	if file, err := os.OpenFile(trackersTxtPath, os.O_RDONLY, 0644); err != nil {
+		log.Debugf("[Torrent-Go] Error reading trackers.txt: %s", err)
 		return nil
 	} else {
-		lines := strings.Split(string(content[:len(content)-1]), "\n")
+		defer file.Close()
+		content := make([]byte, 8192)
+		length, err := file.Read(content)
+		if err != nil {
+			log.Debugf("[Torrent-Go] Error reading trackers.txt: %s", err)
+			return nil
+		}
+		lines := strings.Split(string(content[:length-1]), "\n")
 		trackers := []string{}
 		for _, line := range lines {
 			// if line is empty, skip
@@ -62,12 +70,12 @@ func GetTrackers() []string {
 func AddTorrentFromInfoHash(infoHashStr string) *torrent.Torrent {
 	infoHash_ := infohash.T{}
 	if parseErr := infoHash_.FromHexString(infoHashStr); parseErr != nil {
-		log.Printf("[Torrent-Go] Error parsing infoHash: %s %s", infoHashStr, parseErr)
+		log.Debugf("[Torrent-Go] Error parsing infoHash: %s %s", infoHashStr, parseErr)
 		return nil
 	} else {
 		t, ok := torrentClient.AddTorrentInfoHash(infoHash_)
 		if t == nil || !ok {
-			log.Printf("[Torrent-Go] Error adding torrent from infoHash %s", infoHashStr)
+			log.Debugf("[Torrent-Go] Error adding torrent from infoHash %s", infoHashStr)
 		}
 		<-t.GotInfo()
 		t.DownloadAll()
@@ -79,26 +87,29 @@ func AddTorrentFromInfoHash(infoHashStr string) *torrent.Torrent {
 func SaveMetadata(t *torrent.Torrent) {
 	metaInfoJson, err := json.Marshal(t.Metainfo())
 	if err != nil {
-		log.Printf("[Torrent-Go] Error saving metadata: %s", err)
+		log.Debugf("[Torrent-Go] Error saving metadata: %s", err)
 		return
 	}
-	err = os.WriteFile(path.Join(dataPath, t.InfoHash().HexString()+".json"), metaInfoJson, 0644)
+	file, err := os.OpenFile(path.Join(dataPath, t.InfoHash().HexString()+".json"), os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Printf("[Torrent-Go] Error saving metadata: %s", err)
+		log.Debugf("[Torrent-Go] Error saving metadata: %s", err)
+		return
 	}
+	defer file.Close()
+	file.Write(metaInfoJson)
 }
 
 func ReadMetadataAndAdd(infoHashStr string) *torrent.Torrent {
 	// fallback to AddTorrentFromInfoHash if metadata not found
 	metaInfoJsonBytes, err := os.ReadFile(path.Join(dataPath, infoHashStr+".json"))
 	if err != nil {
-		log.Printf("[Torrent-Go] Error reading metadata: %s", err)
+		log.Debugf("[Torrent-Go] Error reading metadata: %s", err)
 		AddTorrentFromInfoHash(infoHashStr)
 		return nil
 	}
 	metaInfo := metainfo.MetaInfo{}
 	if metaInfoParseErr := json.Unmarshal(metaInfoJsonBytes, &metaInfo); metaInfoParseErr != nil {
-		log.Printf("[Torrent-Go] Error parsing metaInfo: %s", metaInfoParseErr)
+		log.Debugf("[Torrent-Go] Error parsing metaInfo: %s", metaInfoParseErr)
 		return AddTorrentFromInfoHash(infoHashStr)
 	} else {
 		t, _ := torrentClient.AddTorrent(&metaInfo)
@@ -111,13 +122,13 @@ func ReadMetadataAndAdd(infoHashStr string) *torrent.Torrent {
 //export AddMagnet
 func AddMagnet(magnetCString *C.char) *C.char {
 	magnet := C.GoString(magnetCString)
-	log.Printf("Adding torrent: %s", magnet)
+	log.Debugf("Adding torrent: %s", magnet)
 	t, err := torrentClient.AddMagnet(magnet)
 	if t == nil || err != nil {
 		return jsonify([]map[string]interface{}{})
 	}
 	<-t.GotInfo()
-	// log.Printf("Added %p", t)
+	// log.Debugf("Added %p", t)
 	if trackers := GetTrackers(); trackers != nil {
 		t.AddTrackers([][]string{trackers})
 	}
@@ -133,25 +144,25 @@ func AddTorrent(torrentUrlCStr *C.char) *C.char {
 	torrentPath := path.Join(dataPath, path.Base(torrentUrl))
 	torrentFile, err := os.Create(torrentPath)
 	if err != nil {
-		log.Printf("[Torrent-Go] Error creating torrent file: %s", err)
+		log.Debugf("[Torrent-Go] Error creating torrent file: %s", err)
 		return jsonify([]map[string]interface{}{})
 	}
 	defer torrentFile.Close()
 	resp, err := http.Get(torrentUrl)
 	if err != nil {
-		log.Printf("[Torrent-Go] Error downloading torrent file: %s", err)
+		log.Debugf("[Torrent-Go] Error downloading torrent file: %s", err)
 		return jsonify([]map[string]interface{}{})
 	}
 	defer resp.Body.Close()
 	_, err = io.Copy(torrentFile, resp.Body)
 	if err != nil {
-		log.Printf("[Torrent-Go] Error reading torrent file: %s", err)
+		log.Debugf("[Torrent-Go] Error reading torrent file: %s", err)
 		return jsonify([]map[string]interface{}{})
 	}
 	t, err := torrentClient.AddTorrentFromFile(torrentPath)
 	os.Remove(torrentPath)
 	if t == nil || err != nil {
-		log.Printf("[Torrent-Go] Error adding torrent: %s", err)
+		log.Debugf("[Torrent-Go] Error adding torrent: %s", err)
 		return jsonify([]map[string]interface{}{})
 	}
 	<-t.GotInfo()
@@ -196,9 +207,9 @@ func DeleteTorrent(torrentPtr unsafe.Pointer) {
 		err = os.Remove(path.Join(savePath, t.Name()))
 	}
 	if err != nil {
-		log.Printf("[Torrent-Go] Warning: Error deleting files: %s", err)
+		log.Debugf("[Torrent-Go] Warning: Error deleting files: %s", err)
 	}
 	if (os.Remove(path.Join(dataPath, infoHashStr+".json"))) != nil {
-		log.Printf("[Torrent-Go] Warning: Error deleting metadata: %s", err)
+		log.Debugf("[Torrent-Go] Warning: Error deleting metadata: %s", err)
 	}
 }

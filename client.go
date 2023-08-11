@@ -2,51 +2,63 @@ package main
 
 import "C"
 import (
-	"log"
 	"os"
 	"path"
+	"runtime"
 
 	"github.com/anacrolix/torrent"
+	"github.com/sirupsen/logrus"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var torrentClient *torrent.Client = nil
 var savePath string
 var dataPath string
 
+const IS_MOBILE = runtime.GOOS == "android" || runtime.GOOS == "ios"
+
 func loadLastSession() {
-	log.Println("[Torrent-Go] Loading session...")
+	log.Debugln("[Torrent-Go] Loading session...")
 	// torrent list is data/*.json
 	if files, err := os.ReadDir(dataPath); err != nil {
-		log.Printf("[Torrent-Go] Error reading data dir: %s", err)
+		log.Debugf("[Torrent-Go] Error reading data dir: %s", err)
 	} else {
+		log.Debugf("[Torrent-Go] Found %d files", len(files))
 		for _, file := range files {
 			if file.IsDir() {
 				continue
 			}
+			log.Debugf("[Torrent-Go] Found file %s", file.Name())
 			if path.Ext(file.Name()) == ".json" {
 				// filename is the infohash
 				ReadMetadataAndAdd(file.Name()[:len(file.Name())-5])
 			}
 		}
-		log.Println("[Torrent-Go] Session loaded")
+		log.Debugln("[Torrent-Go] Session loaded")
 	}
 }
 
 //export InitTorrentClient
 func InitTorrentClient(savePathCStr *C.char) {
-	log.Println("[Torrent-Go] Initializing...")
+	logrus.SetLevel(logrus.DebugLevel)
+	// fix console output android
+	if runtime.GOOS == "android" {
+		logrus.AddHook(AndroidLogHook("Torrent-Go"))
+	}
+	log.Debugln("[Torrent-Go] Initializing...")
 	if torrentClient != nil {
 		return // Already initialized, maybe flutter hot reload?
 	}
 	savePath = C.GoString(savePathCStr)
-	dataPath = path.Join(savePath, "data")
-	if err := os.MkdirAll(dataPath, 0644); err != nil {
-		log.Printf("[Torrent-Go] Error creating data dir: %s", err)
-		os.Exit(1)
+	if IS_MOBILE {
+		dataPath = savePath
+	} else {
+		dataPath = path.Join(savePath, "data")
 	}
 	config := torrent.NewDefaultClientConfig()
 	config.NoDHT = false
-	config.NoUpload = false
+	config.NoUpload = !IS_MOBILE
 	config.DataDir = savePath
 	config.DisableIPv6 = true
 	torrentClient, _ = torrent.NewClient(config)
