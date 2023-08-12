@@ -16,7 +16,7 @@ func (ErrorReporter) Write(p []byte) (n int, err error) {
 	if err != nil {
 		log.Errorf("[Torrent-Go] Error reporting error: %s", err)
 		n = -1
-		return
+		return n, err
 	}
 	req.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
@@ -24,7 +24,8 @@ func (ErrorReporter) Write(p []byte) (n int, err error) {
 	if err != nil {
 		log.Errorf("[Torrent-Go] Error reporting error: %s (Code: %d)", err, resp.StatusCode)
 		n = -1
-		return
+		return n, err
 	}
 	n = 0
+	return n, nil
 }
