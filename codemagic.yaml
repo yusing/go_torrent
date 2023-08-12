@@ -48,7 +48,7 @@ workflows:
             CGO_ENABLED=1 \
             GOOS=ios \
             GOARCH=arm64 \
-            go build -tags ios -o build/ios/libtorrent_go_ios.a -buildmode=c-archive -ldflags "-s -w -lresolv"
+            go build -tags ios -o build/ios/libtorrent_go_ios.a -buildmode=c-archive -ldflags "-s -w"
             echo "Building go_torrent for iOS completed"
             file build/ios/libtorrent_go_ios.a
       publishing:
