@@ -4,12 +4,10 @@ workflows:
       name: go_torrent
       instance_type: mac_mini_m1
       max_build_duration: 60
-      # working_directory: go_torrent
       environment:
         groups:
           - ios
         xcode: latest
-        # cocoapods: default
       triggering:
         events:
           - push
@@ -35,16 +33,24 @@ workflows:
             set -e
             set -x
             cat clangwrap.sh
-            cat init_env.sh
             chmod +x clangwrap.sh
-            chmod +x init_env.sh
-            sh init_env.sh
             echo "Building go_torrent for iOS"
             mkdir -p build/ios
             go mod init yusing/go_torrent/v2
             go mod tidy
+            SDK=iphoneos
+            SDK_PATH=`xcrun --sdk $SDK --show-sdk-path` \
+            CLANG=`xcrun --sdk $SDK --find clang` \
+            CC=$(PWD)/clangwrap.sh \
+            CXX=$(PWD)/clangwrap.sh \
+            CARCH='arm64' \
+            CGO_CFLAGS='-fembed-bitcode' \
+            CGO_ENABLED=1 \
+            GOOS=ios \
+            GOARCH=arm64 \
             go build -tags ios -o build/ios/libtorrent_go_ios.a -buildmode=c-archive -ldflags -w
             echo "Building go_torrent for iOS completed"
+            file build/ios/libtorrent_go_ios.a
       publishing:
         scripts:
             - name: report build status
