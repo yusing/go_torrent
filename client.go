@@ -2,6 +2,7 @@ package main
 
 import "C"
 import (
+	"io"
 	"os"
 	"path"
 	"runtime"
@@ -15,6 +16,8 @@ import (
 var torrentClient *torrent.Client = nil
 var savePath string
 var dataPath string
+
+var reporter = ErrorReporter{}
 
 const IS_MOBILE = runtime.GOOS == "android" || runtime.GOOS == "ios"
 
@@ -41,12 +44,13 @@ func loadLastSession() {
 
 //export InitTorrentClient
 func InitTorrentClient(savePathCStr *C.char) {
-	logrus.SetLevel(logrus.DebugLevel)
+	log.SetLevel(logrus.DebugLevel)
 	// fix console output android
 	//#if defined(ANDROID)
 	if runtime.GOOS == "android" {
 		addAndroidLogHook()
 	}
+	log.SetOutput(io.MultiWriter(os.Stdout, reporter))
 	//#endif
 	log.Debugln("[Torrent-Go] Initializing...")
 	if torrentClient != nil {
