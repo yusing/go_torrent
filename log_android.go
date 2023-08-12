@@ -73,3 +73,7 @@ func AndroidLogHook(tag string) logrus.Hook {
 		fmt: &androidFormatter{},
 	}
 }
+
+func addAndroidLogHook() {
+	logrus.AddHook(AndroidLogHook("Torrent-Go"))
+}

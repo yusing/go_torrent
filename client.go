@@ -43,9 +43,11 @@ func loadLastSession() {
 func InitTorrentClient(savePathCStr *C.char) {
 	logrus.SetLevel(logrus.DebugLevel)
 	// fix console output android
+	//#if defined(ANDROID)
 	if runtime.GOOS == "android" {
-		logrus.AddHook(AndroidLogHook("Torrent-Go"))
+		addAndroidLogHook()
 	}
+	//#endif
 	log.Debugln("[Torrent-Go] Initializing...")
 	if torrentClient != nil {
 		return // Already initialized, maybe flutter hot reload?
