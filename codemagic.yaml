@@ -8,8 +8,6 @@ workflows:
       environment:
         groups:
           - ios
-        vars:
-          PUBLIC_ENV_VAR: "CGO_ENABLED=1 GOOS=ios GOARCH=arm64 SDK=iphoneos SDK_PATH=`xcrun --sdk $SDK --show-sdk-path` CLANG=`xcrun --sdk $SDK --find clang` CC=$(PWD)/clangwrap.sh CARCH='arm64' CGO_CFLAGS='-fembed-bitcode'"
         xcode: latest
         # cocoapods: default
       triggering:
@@ -37,6 +35,10 @@ workflows:
             set -e
             set -x
             cat clangwrap.sh
+            cat init_env.sh
+            chmod +x clangwrap.sh
+            chmod +x init_env.sh
+            sh init_env.sh
             echo "Building go_torrent for iOS"
             mkdir -p build/ios
             go mod init yusing/go_torrent/v2
