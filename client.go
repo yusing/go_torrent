@@ -2,13 +2,11 @@ package main
 
 import "C"
 import (
-	"io"
 	"os"
 	"path"
 	"runtime"
 
 	"github.com/anacrolix/torrent"
-	"github.com/sirupsen/logrus"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -16,8 +14,6 @@ import (
 var torrentClient *torrent.Client = nil
 var savePath string
 var dataPath string
-
-var reporter = ErrorReporter{}
 
 const IS_MOBILE = runtime.GOOS == "android" || runtime.GOOS == "ios"
 
@@ -44,14 +40,10 @@ func loadLastSession() {
 
 //export InitTorrentClient
 func InitTorrentClient(savePathCStr *C.char) {
-	log.SetLevel(logrus.DebugLevel)
-	// fix console output android
-	//#if defined(ANDROID)
+	// fix logcat android
 	if runtime.GOOS == "android" {
 		addAndroidLogHook()
 	}
-	log.SetOutput(io.MultiWriter(os.Stdout, reporter))
-	//#endif
 	log.Debugln("[Torrent-Go] Initializing...")
 	if torrentClient != nil {
 		return // Already initialized, maybe flutter hot reload?
