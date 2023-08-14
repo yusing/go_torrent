@@ -1,2 +1,3 @@
 #!/bin/sh
-exec $CLANG -arch $CARCH -isysroot $SDK_PATH -mios-version-min=10.0 "$@"
+CLANG=$(xcrun --sdk "$SDK" --find clang)
+exec $CLANG -target "$TARGET" -isysroot $SDK_PATH -mios-version-min=11.0 "$@"
