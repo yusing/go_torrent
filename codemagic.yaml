@@ -23,10 +23,10 @@ workflows:
             set -e
             set -x
             if [ ! -f /usr/local/go/bin/go ]; then
-              if [ ! -f go1.20.6.darwin-arm64.pkg ]; then
-                wget https://go.dev/dl/go1.20.6.darwin-arm64.pkg
+              if [ ! -f go1.21.0.darwin-arm64.pkg ]; then
+                wget https://go.dev/dl/go1.21.0.darwin-arm64.pkg
               fi
-              sudo installer -pkg go1.20.6.darwin-arm64.pkg -target /
+              sudo installer -pkg go1.21.0.darwin-arm64.pkg -target /
             fi
           - |
             #!/bin/bash
