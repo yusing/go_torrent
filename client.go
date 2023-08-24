@@ -56,7 +56,7 @@ func InitTorrentClient(savePathCStr *C.char) {
 	}
 	config := torrent.NewDefaultClientConfig()
 	config.NoDHT = false
-	config.NoUpload = !IS_MOBILE
+	config.NoUpload = IS_MOBILE
 	config.DataDir = savePath
 	config.DisableIPv6 = true
 	torrentClient, _ = torrent.NewClient(config)
