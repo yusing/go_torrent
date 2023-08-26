@@ -16,23 +16,23 @@ export CGO_ENABLED=1
 export GOOS=ios
 export GOARCH=arm64
 . ./target.sh
-go build -tags ios -o build/$SDK/libtorrent_go.a -buildmode=c-archive
-$CC -fpic -shared -Wl,-all_load build/$SDK/libtorrent_go.a -framework Corefoundation -framework Security -lresolv -lstdc++ -o build/$SDK/libtorrent_go.dylib
-lipo -info build/$SDK/libtorrent_go.dylib
+go build -tags ios -o build/$SDK/go_torrent.a -buildmode=c-archive
+$CC -fpic -shared -Wl,-all_load build/$SDK/go_torrent.a -framework Corefoundation -framework Security -lresolv -lstdc++ -o build/$SDK/go_torrent.dylib
+lipo -info build/$SDK/go_torrent.dylib
 
 export SDK=iphonesimulator
 export GOOS=ios
 export GOARCH=amd64
 . ./target.sh
-go build -tags ios -o build/$SDK/libtorrent_go_amd64.a -buildmode=c-archive
-$CC -fpic -shared -Wl,-all_load build/$SDK/libtorrent_go_amd64.a -framework Corefoundation -framework Security -lSystem -lresolv -lstdc++ -o build/$SDK/libtorrent_go_amd64.dylib
+go build -tags ios -o build/$SDK/go_torrent_amd64.a -buildmode=c-archive
+$CC -fpic -shared -Wl,-all_load build/$SDK/go_torrent_amd64.a -framework Corefoundation -framework Security -lSystem -lresolv -lstdc++ -o build/$SDK/go_torrent_amd64.dylib
 
 export CARCH='arm64'
 export GOOS=ios
 export GOARCH=arm64
 . ./target.sh
-go build -tags ios -o build/$SDK/libtorrent_go_arm64.a -buildmode=c-archive
-$CC -fpic -shared -Wl,-all_load build/$SDK/libtorrent_go_arm64.a -framework Corefoundation -framework Security -lSystem -lresolv -lstdc++ -o build/$SDK/libtorrent_go_arm64.dylib
+go build -tags ios -o build/$SDK/go_torrent_arm64.a -buildmode=c-archive
+$CC -fpic -shared -Wl,-all_load build/$SDK/go_torrent_arm64.a -framework Corefoundation -framework Security -lSystem -lresolv -lstdc++ -o build/$SDK/go_torrent_arm64.dylib
 
-lipo build/$SDK/libtorrent_go_*.dylib -output build/$SDK/libtorrent_go.dylib -create
-lipo -info build/$SDK/libtorrent_go.dylib
+lipo build/$SDK/go_torrent_*.dylib -output build/$SDK/go_torrent.dylib -create
+lipo -info build/$SDK/go_torrent.dylib
