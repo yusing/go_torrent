@@ -119,6 +119,17 @@ func ReadMetadataAndAdd(infoHashStr string) *torrent.Torrent {
 	}
 }
 
+//export DeleteMetadata
+func DeleteMetadata(torrentPtr unsafe.Pointer) {
+	if torrentPtr == nil {
+		return
+	}
+	t := (*torrent.Torrent)(torrentPtr)
+	if os.Remove(path.Join(dataPath, t.InfoHash().HexString()+".json")) != nil {
+		log.Debugf("[Torrent-Go] Warning: Error deleting metadata")
+	}
+}
+
 //export AddMagnet
 func AddMagnet(magnetCString *C.char) *C.char {
 	magnet := C.GoString(magnetCString)
@@ -128,7 +139,6 @@ func AddMagnet(magnetCString *C.char) *C.char {
 		return jsonify([]map[string]interface{}{})
 	}
 	<-t.GotInfo()
-	// log.Debugf("Added %p", t)
 	if trackers := GetTrackers(); trackers != nil {
 		t.AddTrackers([][]string{trackers})
 	}
@@ -198,7 +208,7 @@ func DeleteTorrent(torrentPtr unsafe.Pointer) {
 	}
 	t := (*torrent.Torrent)(torrentPtr)
 	// remove files/directory
-	infoHashStr := t.InfoHash().HexString()
+	DeleteMetadata(unsafe.Pointer(t))
 	t.Drop()
 	var err error
 	if t.Info().IsDir() {
@@ -208,8 +218,5 @@ func DeleteTorrent(torrentPtr unsafe.Pointer) {
 	}
 	if err != nil {
 		log.Debugf("[Torrent-Go] Warning: Error deleting files: %s", err)
-	}
-	if (os.Remove(path.Join(dataPath, infoHashStr+".json"))) != nil {
-		log.Debugf("[Torrent-Go] Warning: Error deleting metadata: %s", err)
 	}
 }

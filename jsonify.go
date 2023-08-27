@@ -6,11 +6,13 @@ import (
 	"unsafe"
 
 	"github.com/anacrolix/torrent"
+	log "github.com/sirupsen/logrus"
 )
 
 func jsonify[M interface{}](mapLike M) *C.char {
 	j, err := json.Marshal(mapLike)
 	if err != nil {
+		log.Errorf("jsonify: %v", err)
 		return nil
 	}
 	return C.CString(string(j))
@@ -35,7 +37,7 @@ func torrentFileMap(f []*torrent.File) []map[string]interface{} {
 
 func torrentInfoMap(t *torrent.Torrent) map[string]interface{} {
 	if t == nil {
-		return nil
+		return map[string]interface{}{}
 	}
 
 	return map[string]interface{}{
